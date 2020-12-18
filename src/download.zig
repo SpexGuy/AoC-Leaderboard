@@ -164,7 +164,7 @@ pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
         if (size == 0) break;
 
         const start = data.items.len;
-        data.appendNTimesAssumeCapacity(undefined, size);
+        try data.appendNTimes(undefined, size);
 
         var downloaded: DWORD = 0;
         if (wh.ReadData(request, data.items.ptr + start, size, &downloaded) == 0) {
