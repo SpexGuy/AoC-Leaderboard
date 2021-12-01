@@ -109,7 +109,7 @@ pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
     }
     defer _ = wh.CloseHandle(request);
 
-    @compileError("Insert your session token below, then delete this line.");
+    if (true) @compileError("Insert your session token below, then delete this line.");
     var success = wh.AddRequestHeaders(
         request,
         wide("Cookie: session=<your session here>"),
