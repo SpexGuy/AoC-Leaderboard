@@ -206,7 +206,7 @@ fn parseOptions(allocator: *std.mem.Allocator) !Options {
                     try ids.append(val);
                 } else |err| {
                     badArgs = true;
-                    print("Error: Could not parse player ID \"{}\": {}\n", .{idStr, @errorName(err)});
+                    print("Error: Could not parse player ID \"{s}\": {s}\n", .{idStr, @errorName(err)});
                 }
             } else {
                 badArgs = true;
@@ -225,7 +225,7 @@ fn parseOptions(allocator: *std.mem.Allocator) !Options {
                     }
                 } else |err| {
                     badArgs = true;
-                    print("Error: Could not parse day number \"{}\": {}\n", .{dayStr, @errorName(err)});
+                    print("Error: Could not parse day number \"{s}\": {s}\n", .{dayStr, @errorName(err)});
                 }
             } else {
                 badArgs = true;
@@ -239,7 +239,7 @@ fn parseOptions(allocator: *std.mem.Allocator) !Options {
                     opts.limit = val;
                 } else |err| {
                     badArgs = true;
-                    print("Error: Could not parse limit \"{}\": {}\n", .{limitStr, @errorName(err)});
+                    print("Error: Could not parse limit \"{s}\": {s}\n", .{limitStr, @errorName(err)});
                 }
             } else {
                 badArgs = true;
@@ -257,7 +257,7 @@ fn parseOptions(allocator: *std.mem.Allocator) !Options {
                     opts.printOrder = .stars;
                 } else {
                     badArgs = true;
-                    print("Error: Unknown sort option \"{}\", options are local, global, or stars.\n", .{sortStr});
+                    print("Error: Unknown sort option \"{s}\", options are local, global, or stars.\n", .{sortStr});
                 }
             } else {
                 badArgs = true;
@@ -275,7 +275,7 @@ fn parseOptions(allocator: *std.mem.Allocator) !Options {
             badArgs = true;
         } else {
             badArgs = true;
-            print("Unknown argument: \"{}\"\n", .{arg});
+            print("Unknown argument: \"{s}\"\n", .{arg});
         }
     }
 
@@ -310,7 +310,7 @@ pub fn main() !void {
         print("Top Players:\n", .{});
         for (players) |*p, i| {
             if (options.shouldPrintTopPlayer(p, i)) {
-                print("    {: >2}: {: >2} stars, {: >4} local, {: >2} global: {} ({})\n",
+                print("    {: >2}: {: >2} stars, {: >4} local, {: >2} global: {s} ({})\n",
                     .{i+1, p.stars, p.local_score, p.global_score, p.name, p.id});
             }
         }
@@ -335,7 +335,7 @@ pub fn main() !void {
                     if (options.shouldPrintPlayerTimes(p, i, day, star)) {
                         print("    {: >2}: ", .{i+1});
                         printTime(p.days[day].stars[star], day);
-                        print(" {}\n", .{ p.name });
+                        print(" {s}\n", .{ p.name });
                     }
                 }
             }
@@ -345,7 +345,7 @@ pub fn main() !void {
 }
 
 fn printAllInfo(p: *const Player) void {
-    print("{} ({}): {} stars, {} local, {} global\n",
+    print("{s} ({}): {} stars, {} local, {} global\n",
         .{p.name, p.id, p.stars, p.local_score, p.global_score});
     for (p.days) |day, j| {
         if (day.stars[0] != null) {
@@ -359,12 +359,12 @@ fn printAllInfo(p: *const Player) void {
     }
 }
 
-const start_2020 = 1606798800;
+const start_2021 = 1638334800;
 const day_length = 24*60*60;
 
 fn printTime(time: ?u64, day: usize) void {
     if (time) |ts| {
-        const star_signed = @intCast(i64, ts) - (start_2020 + day_length * @intCast(i64, day));
+        const star_signed = @intCast(i64, ts) - (start_2021 + day_length * @intCast(i64, day));
         var star: u64 = if (star_signed < 0) 0 else @intCast(u64, star_signed);
 
         const seconds = star % 60;
@@ -385,53 +385,57 @@ fn parseLeaderboard(json: []const u8, allocator: *std.mem.Allocator) ![]Player {
     var parser = std.json.Parser.init(std.heap.page_allocator, false);
     defer parser.deinit();
 
-    var tree = try parser.parse(json);
+    var tree = parser.parse(json) catch |err| {
+        print("{s}\n", .{json});
+        return err;
+    };
     defer tree.deinit();
 
-    var members = tree.root.Object.getEntry("members").?.value;
+    var members = tree.root.Object.get("members").?;
 
     var players = try allocator.alloc(Player, members.Object.count());
     errdefer allocator.free(players);
 
     std.mem.set(Player, players, .{});
 
-    var i: usize = 0;
-    var it = members.Object.iterator();
-    while (it.next()) |entry| : (i += 1) {
+    for (members.Object.values()) |member, i| {
         var p: *Player = &players[i];
-        var fields = entry.value.Object.iterator();
+        var fields = member.Object.iterator();
         while (fields.next()) |fe| {
-            if (std.mem.eql(u8, fe.key, "name")) {
-                if (fe.value == .String) {
-                    p.name = fe.value.String;
+            const key = fe.key_ptr.*;
+            const value = fe.value_ptr;
+            if (std.mem.eql(u8, key, "name")) {
+                if (value.* == .String) {
+                    p.name = value.String;
                 }
-            } else if (std.mem.eql(u8, fe.key, "id")) {
-                p.id = try std.fmt.parseUnsigned(u64, fe.value.String, 10);
-            } else if (std.mem.eql(u8, fe.key, "completion_day_level")) {
-                var day_it = fe.value.Object.iterator();
+            } else if (std.mem.eql(u8, key, "id")) {
+                p.id = try std.fmt.parseUnsigned(u64, value.String, 10);
+            } else if (std.mem.eql(u8, key, "completion_day_level")) {
+                var day_it = value.Object.iterator();
                 while (day_it.next()) |day| {
-                    const day_id = try std.fmt.parseUnsigned(usize, day.key, 10);
-                    if (day.value.Object.getEntry("1")) |obj| {
-                        if (obj.value.Object.getEntry("get_star_ts")) |star| {
-                            p.days[day_id-1].stars[0] = try std.fmt.parseUnsigned(u64, star.value.String, 10);
+                    const day_key = day.key_ptr.*;
+                    const day_value = day.value_ptr;
+                    const day_id = try std.fmt.parseUnsigned(usize, day_key, 10);
+                    if (day_value.Object.getPtr("1")) |obj| {
+                        if (obj.Object.getPtr("get_star_ts")) |star| {
+                            p.days[day_id-1].stars[0] = @intCast(u64, star.Integer);//try std.fmt.parseUnsigned(u64, star.String, 10);
                         }
                     }
-                    if (day.value.Object.getEntry("2")) |obj| {
-                        if (obj.value.Object.getEntry("get_star_ts")) |star| {
-                            p.days[day_id-1].stars[1] = try std.fmt.parseUnsigned(u64, star.value.String, 10);
+                    if (day_value.Object.getPtr("2")) |obj| {
+                        if (obj.Object.getPtr("get_star_ts")) |star| {
+                            p.days[day_id-1].stars[1] = @intCast(u64, star.Integer);//try std.fmt.parseUnsigned(u64, star.String, 10);
                         }
                     }
                 }
-            } else if (std.mem.eql(u8, fe.key, "local_score")) {
-                p.local_score = @intCast(u32, fe.value.Integer);
-            } else if (std.mem.eql(u8, fe.key, "global_score")) {
-                p.global_score = @intCast(u32, fe.value.Integer);
-            } else if (std.mem.eql(u8, fe.key, "stars")) {
-                p.stars = @intCast(u32, fe.value.Integer);
+            } else if (std.mem.eql(u8, key, "local_score")) {
+                p.local_score = @intCast(u32, value.Integer);
+            } else if (std.mem.eql(u8, key, "global_score")) {
+                p.global_score = @intCast(u32, value.Integer);
+            } else if (std.mem.eql(u8, key, "stars")) {
+                p.stars = @intCast(u32, value.Integer);
             }
         } 
     }
 
-    std.debug.assert(players.len == i);
     return players;
 }

@@ -25,6 +25,7 @@ pub fn build(b: *Builder) void {
 }
 
 fn setDependencies(b: *Builder, step: *LibExeObjStep, mode: anytype, target: anytype) void {
+    _ = b;
     step.setBuildMode(mode);
     step.setTarget(target);
     step.linkLibC();

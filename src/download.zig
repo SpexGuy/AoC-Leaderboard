@@ -1,12 +1,21 @@
 const std = @import("std");
-usingnamespace std.os.windows;
+const w = std.os.windows;
+const ULONG = w.ULONG;
+const DWORD = w.DWORD;
+const WORD = w.WORD;
+const LPSTR = w.LPSTR;
+const LPCSTR = w.LPCSTR;
+const LPWSTR = w.LPWSTR;
+const LPCVOID = w.LPCVOID;
+const LPVOID = w.LPVOID;
+const WINAPI = w.WINAPI;
 
 const wide = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const wh = @import("winhttp");
 
-extern "kernel32" fn LocalFree(*c_void) callconv(.Stdcall) ?*c_void;
-extern "kernel32" fn GetLastError() callconv(.Stdcall) DWORD;
+extern "kernel32" fn LocalFree(*c_void) callconv(WINAPI) ?*c_void;
+extern "kernel32" fn GetLastError() callconv(WINAPI) DWORD;
 extern "kernel32" fn FormatMessageA(
     dwFlags: DWORD,
     lpSource: ?LPCVOID,
@@ -15,7 +24,7 @@ extern "kernel32" fn FormatMessageA(
     lpBuffer: ?LPSTR,
     nSize: DWORD,
     args: ?*c_void,
-) callconv(.Stdcall) DWORD;
+) callconv(WINAPI) DWORD;
 extern "kernel32" fn FormatMessageW(
     dwFlags: DWORD,
     lpSource: ?LPCVOID,
@@ -24,7 +33,7 @@ extern "kernel32" fn FormatMessageW(
     lpBuffer: ?LPWSTR,
     nSize: DWORD,
     args: ?*c_void,
-) callconv(.Stdcall) DWORD;
+) callconv(WINAPI) DWORD;
 inline fn MAKELANGID(p: WORD, s: WORD) DWORD {
     return (@as(DWORD, s) << 10) | @as(DWORD, p);
 }
@@ -45,8 +54,8 @@ fn printWindowsError(context: []const u8) void {
     if (messageID != 0) {
         var ptr: ?[*:0]const u8 = null;
         const result = FormatMessageA(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            null, messageID, DEFAULT_LANG, @ptrCast(LPSTR, &ptr), 0, null);
+            w.FORMAT_MESSAGE_ALLOCATE_BUFFER | w.FORMAT_MESSAGE_FROM_SYSTEM | w.FORMAT_MESSAGE_IGNORE_INSERTS,
+            null, messageID, DEFAULT_LANG, @ptrCast(w.LPSTR, &ptr), 0, null);
         if (result == 0) {
             printWindowsError("FormatMessageA");
         } else if (ptr) |p| {
@@ -54,7 +63,7 @@ fn printWindowsError(context: []const u8) void {
             needsCleanup = true;
         }
     }
-    std.debug.print("{} failed, error={}, code={}\n", .{context, message, messageID});
+    std.debug.print("{s} failed, error={s}, code={}\n", .{context, message, messageID});
 }
 
 pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
@@ -88,9 +97,9 @@ pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
     const request = wh.OpenRequest(
         conn,
         wide("GET"),
-        wide("/2020/leaderboard/private/view/384812.json"),
+        wide("/2021/leaderboard/private/view/384812.json"),
         null,
-        wide("https://adventofcode.com/2020/leaderboard/private/view/384812"),
+        wide("https://adventofcode.com/2021/leaderboard/private/view/384812"),
         wh.DEFAULT_ACCEPT_TYPES,
         wh.FLAG_SECURE,
     );
@@ -100,9 +109,10 @@ pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
     }
     defer _ = wh.CloseHandle(request);
 
+    @compileError("Insert your session token below, then delete this line.");
     var success = wh.AddRequestHeaders(
         request,
-        wide("Cookie: session=53616c7465645f5fc9890be8efa0ae2e549b7d30f8cb642f48fac7fe3c4a197fd0df2838b7754bc0a0d5e978e773ac90"),
+        wide("Cookie: session=<your session here>"),
         ~@as(ULONG, 0),
         wh.ADDREQ_FLAG_ADD,
     );

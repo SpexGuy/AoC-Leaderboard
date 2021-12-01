@@ -4,9 +4,10 @@ const PCWSTR = LPCWSTR;
 const LPWSTR = ?w.LPWSTR;
 const PWSTR = ?w.PWSTR;
 const LPSTR = ?w.LPSTR;
-const LPDWORD = ?w.LPDWORD;
+const LPDWORD = [*c]w.DWORD;
 const PDWORD = LPDWORD;
 const LPVOID = ?w.LPVOID;
+const LPCVOID = ?w.LPCVOID;
 const PVOID = ?w.PVOID;
 
 const HANDLE = ?w.HANDLE;
@@ -594,7 +595,7 @@ pub const CERTIFICATE_INFO = extern struct {
     lpszEncryptionAlgName: LPWSTR,
     dwKeySize: DWORD,
 };
-pub const REQUEST_TIME_ENTRY = extern enum(c_int) {
+pub const REQUEST_TIME_ENTRY = enum(c_int) {
     ProxyDetectionStart = 0,
     ProxyDetectionEnd = 1,
     ConnectionAcquireStart = 2,
@@ -641,7 +642,7 @@ pub const REQUEST_TIMES = extern struct {
 };
 pub const PREQUEST_TIMES = [*c]REQUEST_TIMES;
 
-pub const REQUEST_STAT_ENTRY = extern enum(c_int) {
+pub const REQUEST_STAT_ENTRY = enum(c_int) {
     ConnectFailureCount = 0,
     ProxyFailureCount = 1,
     TlsHandshakeClientLeg1Size = 2,
@@ -701,7 +702,7 @@ pub const CURRENT_USER_IE_PROXY_CONFIG = extern struct {
     lpszProxyBypass: LPWSTR,
 };
 
-pub const WEB_SOCKET_OPERATION = extern enum(c_int) {
+pub const WEB_SOCKET_OPERATION = enum(c_int) {
     SEND = 0,
     RECEIVE = 1,
     CLOSE = 2,
@@ -709,7 +710,7 @@ pub const WEB_SOCKET_OPERATION = extern enum(c_int) {
     _,
 };
 
-pub const WEB_SOCKET_BUFFER_TYPE = extern enum(c_int) {
+pub const WEB_SOCKET_BUFFER_TYPE = enum(c_int) {
     BINARY_MESSAGE = 0,
     BINARY_FRAGMENT = 1,
     UTF8_MESSAGE = 2,
@@ -718,7 +719,7 @@ pub const WEB_SOCKET_BUFFER_TYPE = extern enum(c_int) {
     _,
 };
 
-pub const WEB_SOCKET_CLOSE_STATUS = extern enum(c_int) {
+pub const WEB_SOCKET_CLOSE_STATUS = enum(c_int) {
     SUCCESS = 1000,
     ENDPOINT_TERMINATED = 1001,
     PROTOCOL_ERROR = 1002,
