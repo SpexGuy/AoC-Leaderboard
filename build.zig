@@ -14,6 +14,7 @@ pub fn build(b: *Builder) void {
     const run_step = b.step("run", "Run the project");
     const run_cmd = exe.run();
     run_step.dependOn(&run_cmd.step);
+    if (b.args) |args| run_cmd.addArgs(args);
 
     const vscode_exe = b.addExecutable("vscode", "src/main.zig");
     setDependencies(b, vscode_exe, mode, target);

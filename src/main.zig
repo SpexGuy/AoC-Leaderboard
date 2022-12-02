@@ -4,6 +4,9 @@ const print = std.debug.print;
 
 const download = @import("download.zig");
 
+const start_year = 1669870800;
+const day_length = 24*60*60;
+
 const DayInfo = struct {
     stars: [2]?u64 = [2]?u64{ null, null },
 };
@@ -65,9 +68,9 @@ const Options = struct {
 
     fn compareFunc(self: Options, a: Player, b: Player) bool {
         const comp = switch (self.printOrder) {
-            .local => compareLocal,
-            .global => compareGlobal,
-            .stars => compareStars,
+            .local => &compareLocal,
+            .global => &compareGlobal,
+            .stars => &compareStars,
         };
         return comp(a, b);
     }
@@ -171,7 +174,7 @@ fn printUsage() void {
     , .{});
 }
 
-fn parseOptions(allocator: *std.mem.Allocator) !Options {
+fn parseOptions(allocator: std.mem.Allocator) !Options {
     var opts = Options{};
     var badArgs = false;
 
@@ -359,12 +362,9 @@ fn printAllInfo(p: *const Player) void {
     }
 }
 
-const start_2021 = 1638334800;
-const day_length = 24*60*60;
-
 fn printTime(time: ?u64, day: usize) void {
     if (time) |ts| {
-        const star_signed = @intCast(i64, ts) - (start_2021 + day_length * @intCast(i64, day));
+        const star_signed = @intCast(i64, ts) - (start_year + day_length * @intCast(i64, day));
         var star: u64 = if (star_signed < 0) 0 else @intCast(u64, star_signed);
 
         const seconds = star % 60;
@@ -381,7 +381,7 @@ fn printTime(time: ?u64, day: usize) void {
     }
 }
 
-fn parseLeaderboard(json: []const u8, allocator: *std.mem.Allocator) ![]Player {
+fn parseLeaderboard(json: []const u8, allocator: std.mem.Allocator) ![]Player {
     var parser = std.json.Parser.init(std.heap.page_allocator, false);
     defer parser.deinit();
 
@@ -409,7 +409,8 @@ fn parseLeaderboard(json: []const u8, allocator: *std.mem.Allocator) ![]Player {
                     p.name = value.String;
                 }
             } else if (std.mem.eql(u8, key, "id")) {
-                p.id = try std.fmt.parseUnsigned(u64, value.String, 10);
+                //p.id = try std.fmt.parseUnsigned(u64, value.String, 10);
+                p.id = @intCast(u64, value.Integer);
             } else if (std.mem.eql(u8, key, "completion_day_level")) {
                 var day_it = value.Object.iterator();
                 while (day_it.next()) |day| {

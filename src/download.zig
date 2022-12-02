@@ -14,7 +14,7 @@ const wide = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const wh = @import("winhttp");
 
-extern "kernel32" fn LocalFree(*c_void) callconv(WINAPI) ?*c_void;
+extern "kernel32" fn LocalFree(*anyopaque) callconv(WINAPI) ?*anyopaque;
 extern "kernel32" fn GetLastError() callconv(WINAPI) DWORD;
 extern "kernel32" fn FormatMessageA(
     dwFlags: DWORD,
@@ -23,7 +23,7 @@ extern "kernel32" fn FormatMessageA(
     dwLanguageId: DWORD,
     lpBuffer: ?LPSTR,
     nSize: DWORD,
-    args: ?*c_void,
+    args: ?*anyopaque,
 ) callconv(WINAPI) DWORD;
 extern "kernel32" fn FormatMessageW(
     dwFlags: DWORD,
@@ -32,7 +32,7 @@ extern "kernel32" fn FormatMessageW(
     dwLanguageId: DWORD,
     lpBuffer: ?LPWSTR,
     nSize: DWORD,
-    args: ?*c_void,
+    args: ?*anyopaque,
 ) callconv(WINAPI) DWORD;
 inline fn MAKELANGID(p: WORD, s: WORD) DWORD {
     return (@as(DWORD, s) << 10) | @as(DWORD, p);
@@ -66,7 +66,7 @@ fn printWindowsError(context: []const u8) void {
     std.debug.print("{s} failed, error={s}, code={}\n", .{context, message, messageID});
 }
 
-pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
+pub fn downloadLeaderboard(allocator: std.mem.Allocator) ![]const u8 {
     @setEvalBranchQuota(10000);
 
     const session = wh.Open(
@@ -97,9 +97,9 @@ pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
     const request = wh.OpenRequest(
         conn,
         wide("GET"),
-        wide("/2021/leaderboard/private/view/384812.json"),
+        wide("/2022/leaderboard/private/view/384812.json"),
         null,
-        wide("https://adventofcode.com/2021/leaderboard/private/view/384812"),
+        wide("https://adventofcode.com/2022/leaderboard/private/view/384812.json"),
         wh.DEFAULT_ACCEPT_TYPES,
         wh.FLAG_SECURE,
     );
@@ -162,7 +162,7 @@ pub fn downloadLeaderboard(allocator: *std.mem.Allocator) ![]const u8 {
     var data = std.ArrayList(u8).init(allocator);
     defer data.deinit();
 
-    try data.ensureCapacity(64 * 1024);
+    try data.ensureTotalCapacity(64 * 1024);
 
     while (true) {
         var size: DWORD = 0;
